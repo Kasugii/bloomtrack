@@ -677,11 +677,15 @@ let swReg = null;
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('./sw.js').then(reg=>{
     swReg=reg;
+    // Ping SW every 20s to keep it alive so setTimeout reminders don't die
+    setInterval(()=>sendSW({type:'ping'}), 20000);
   }).catch(()=>{});
 }
 function sendSW(msg){
-  if(!swReg||!swReg.active)return;
-  swReg.active.postMessage(msg);
+  if(!('serviceWorker' in navigator))return;
+  navigator.serviceWorker.ready.then(reg=>{
+    if(reg.active) reg.active.postMessage(msg);
+  }).catch(()=>{});
 }
 
 // ══════════════════════════════════════════════
@@ -1024,15 +1028,13 @@ function renderCalGrid(){
       const i2=iso(d),isSel=selCells.find(c=>c.date===i2&&c.slot===s);
       const blks=S.calBlocks.filter(b=>{if(b.date!==i2)return false;if(calFil.length>0&&!calFil.includes(b.taskId))return false;const be=b.startMin+b.duration;return b.startMin===sm||(b.startMin<sm&&be>sm);});
       let bk='';
-      // Render block when its startMin falls within this slot (not just exact match)
+      // Render block when its startMin falls within this slot
       blks.filter(b=>b.startMin>=sm&&b.startMin<sm+bs).forEach(b=>{
         const t=S.tasks.find(x=>x.id===b.taskId);if(!t)return;
-        // offset within the slot in px
         const offsetPx=((b.startMin-sm)/bs)*CH;
-        const totalSlots=(b.duration/bs);
-        const h=Math.max(totalSlots*CH - offsetPx, CH*0.5);
+        const hPx=Math.max((b.duration/bs)*CH, CH*0.5); // height = full duration, not minus offset
         const bg=hexRgba(t.color,.18);
-        bk+=`<div class="cal-block-abs" style="top:${offsetPx}px;height:${h}px;background:${bg};border-left:3px solid ${t.color};color:${t.color};" onclick="openBD('${b.id}',event)">${t.name}${t.isIP?'<span class="ip-badge">✨</span>':''}${b.notes?'<br><span style="opacity:.7;font-weight:500">'+b.notes.slice(0,26)+'</span>':''}</div>`;
+        bk+=`<div class="cal-block-abs" style="top:${offsetPx}px;height:${hPx}px;background:${bg};border-left:3px solid ${t.color};color:${t.color};" onclick="openBD('${b.id}',event)">${t.name}${t.isIP?'<span class="ip-badge">✨</span>':''}${b.notes?'<br><span style="opacity:.7;font-weight:500">'+b.notes.slice(0,26)+'</span>':''}</div>`;
       });
       bH+=`<div class="cal-cell${isSel?' sel':''}" style="height:${CH}px;" data-date="${i2}" data-slot="${s}" onmousedown="startSel(event,this,'${i2}',${s})" onmouseover="extSel(event,this,'${i2}',${s})">${bk}<div class="plus-hint">+</div></div>`;
     });
