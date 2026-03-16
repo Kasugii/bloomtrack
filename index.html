@@ -309,14 +309,14 @@ select.form-inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg 
 .lb-close{position:absolute;top:18px;right:18px;width:40px;height:40px;border-radius:13px;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;}
 .lb-close:hover{background:rgba(255,255,255,.28);}
 /* ENCOURAGEMENT */
-.encour-overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:400;pointer-events:none;}
-.encour-popup{background:#fff;border-radius:28px;padding:28px 36px;box-shadow:0 20px 60px rgba(168,125,220,.35);border:2px solid var(--mv2);display:flex;flex-direction:column;align-items:center;gap:12px;opacity:0;transform:scale(.7) translateY(30px);transition:opacity .35s cubic-bezier(.34,1.56,.64,1),transform .35s cubic-bezier(.34,1.56,.64,1);max-width:300px;text-align:center;pointer-events:none;}
-.encour-popup.show{opacity:1;transform:scale(1) translateY(0);}
-.encour-popup.hide{opacity:0;transform:scale(.85) translateY(-16px);transition:opacity .28s ease,transform .28s ease;}
-.encour-img{width:100px;height:100px;object-fit:contain;border-radius:16px;}
-.encour-msg{font-family:'Cormorant Garamond',serif;font-size:21px;font-weight:600;color:var(--txt);line-height:1.3;}
-.encour-sub{font-size:12px;font-weight:700;color:var(--txt2);}
-.encour-confetti{font-size:26px;letter-spacing:3px;}
+.encour-overlay{position:fixed;top:70px;right:18px;z-index:400;pointer-events:none;}
+.encour-popup{background:#fff;border-radius:20px;padding:16px 20px;box-shadow:0 8px 32px rgba(168,125,220,.3);border:1.5px solid var(--mv2);display:flex;flex-direction:row;align-items:center;gap:12px;opacity:0;transform:translateX(120%);transition:opacity .35s cubic-bezier(.34,1.56,.64,1),transform .35s cubic-bezier(.34,1.56,.64,1);max-width:280px;pointer-events:none;}
+.encour-popup.show{opacity:1;transform:translateX(0);}
+.encour-popup.hide{opacity:0;transform:translateX(120%);transition:opacity .28s ease,transform .28s ease;}
+.encour-img{width:52px;height:52px;object-fit:contain;border-radius:10px;flex-shrink:0;}
+.encour-msg{font-family:'Cormorant Garamond',serif;font-size:16px;font-weight:600;color:var(--txt);line-height:1.25;}
+.encour-sub{font-size:11px;font-weight:700;color:var(--txt2);margin-top:2px;}
+.encour-confetti{font-size:18px;flex-shrink:0;}
 /* TOAST */
 .toast{position:fixed;top:18px;right:18px;background:#fff;border-radius:16px;padding:14px 18px;box-shadow:0 8px 32px rgba(168,125,220,.25);border-left:4px solid var(--tl3);display:flex;align-items:center;gap:12px;z-index:300;transform:translateX(140%);transition:transform .35s cubic-bezier(.34,1.56,.64,1);max-width:320px;min-width:240px;}
 .toast.show{transform:translateX(0);}
@@ -588,10 +588,12 @@ select.form-inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg 
 <!-- ENCOURAGEMENT POPUP -->
 <div class="encour-overlay">
   <div class="encour-popup" id="encourPopup">
-    <div class="encour-confetti" id="encourConfetti"></div>
     <img class="encour-img" id="encourImg" src="" alt="" style="display:none">
-    <div class="encour-msg" id="encourMsg"></div>
-    <div class="encour-sub" id="encourSub"></div>
+    <div class="encour-confetti" id="encourConfetti"></div>
+    <div>
+      <div class="encour-msg" id="encourMsg"></div>
+      <div class="encour-sub" id="encourSub"></div>
+    </div>
   </div>
 </div>
 
@@ -905,15 +907,40 @@ function renderDashPlan(){
   const base=new Date(today);base.setDate(today.getDate()+dashOff*7);
   const days=wk(base);const d0=days[0],d6=days[6];
   document.getElementById('dashLabel').textContent=`${d0.getDate()} – ${d6.getDate()} ${MF[d6.getMonth()].slice(0,4)}`;
-  const HOURS=Array.from({length:15},(_,i)=>i+7);const CH=30;
-  let h=`<div style="display:grid;grid-template-columns:32px repeat(7,1fr);flex:1;overflow-y:auto;">`;
-  h+='<div style="border-bottom:1px solid var(--border)"></div>';
-  days.forEach((d,i)=>{const i2=iso(d);const iT=i2===todI;h+=`<div style="text-align:center;padding:4px 2px 6px;font-size:10px;font-weight:800;color:${iT?'var(--mv4)':'var(--txt2)'};border-bottom:1px solid var(--border);"><span>${DF[i]}</span><span style="font-size:12px;font-weight:900;color:${iT?'var(--mv4)':'var(--txt)'};display:block;">${d.getDate()}</span></div>`;});
-  HOURS.forEach(hr=>{
-    h+=`<div style="font-size:9px;color:var(--txt3);text-align:right;padding-right:3px;padding-top:2px;height:${CH}px;">${hr}h</div>`;
-    days.forEach(d=>{const i2=iso(d);const blks=S.calBlocks.filter(b=>b.date===i2&&b.startMin>=hr*60&&b.startMin<(hr+1)*60);let inn='';blks.forEach(b=>{const t=S.tasks.find(x=>x.id===b.taskId);if(t)inn+=`<div style="background:${t.color}22;border-left:2px solid ${t.color};border-radius:3px;padding:1px 3px;font-size:8px;font-weight:800;color:${t.color};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${t.name}${b.duration>60?' ('+(Math.round(b.duration/60))+'h)':''}</div>`;});h+=`<div style="height:${CH}px;border-top:1px solid rgba(212,168,240,.12);border-right:1px solid rgba(212,168,240,.08);">${inn}</div>`;});
+  const HOURS=Array.from({length:15},(_,i)=>i+7);const CH=36;
+  const totalH=HOURS.length*CH;
+  // Header row
+  let h=`<div style="display:flex;flex-direction:column;flex:1;overflow:hidden;">`;
+  h+=`<div style="display:flex;flex-shrink:0;border-bottom:1px solid var(--border);">`;
+  h+=`<div style="width:32px;flex-shrink:0;"></div>`;
+  days.forEach((d,i)=>{const i2=iso(d);const iT=i2===todI;h+=`<div style="flex:1;text-align:center;padding:4px 2px 6px;font-size:10px;font-weight:800;color:${iT?'var(--mv4)':'var(--txt2)'};">
+    <span>${DF[i]}</span><span style="font-size:12px;font-weight:900;color:${iT?'var(--mv4)':'var(--txt)'};display:block;">${d.getDate()}</span></div>`;});
+  h+=`</div>`;
+  // Body — scrollable row of columns, all same height
+  h+=`<div style="display:flex;overflow-y:auto;flex:1;">`;
+  // Time gutter
+  h+=`<div style="width:32px;flex-shrink:0;position:relative;height:${totalH}px;">`;
+  HOURS.forEach((_,i)=>h+=`<div style="position:absolute;top:${i*CH}px;right:3px;font-size:9px;color:var(--txt3);line-height:1;padding-top:2px;">${HOURS[i]}h</div>`);
+  h+=`</div>`;
+  // Day columns
+  days.forEach(d=>{
+    const i2=iso(d);
+    const dayBlks=S.calBlocks.filter(b=>b.date===i2);
+    h+=`<div style="flex:1;position:relative;height:${totalH}px;border-left:1px solid rgba(212,168,240,.1);">`;
+    HOURS.forEach((_,i)=>h+=`<div style="position:absolute;top:${i*CH}px;left:0;right:0;border-top:1px solid rgba(212,168,240,.1);height:${CH}px;"></div>`);
+    dayBlks.forEach(b=>{
+      const t=S.tasks.find(x=>x.id===b.taskId);if(!t)return;
+      const topPx=(b.startMin/60-7)*CH;
+      const hPx=Math.max((b.duration/60)*CH,16);
+      const dur=b.duration>=60?Math.round(b.duration/60)+'h':b.duration+'m';
+      h+=`<div onclick="openBD('${b.id}',event)" style="position:absolute;top:${topPx}px;left:1px;right:1px;height:${hPx}px;background:${hexRgba(t.color,.22)};border-left:3px solid ${t.color};border-radius:4px;padding:2px 4px;overflow:hidden;cursor:pointer;z-index:2;">
+        <div style="font-size:8px;font-weight:800;color:${t.color};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${t.name}${hPx>24?' ('+dur+')':''}</div>
+      </div>`;
+    });
+    h+=`</div>`;
   });
-  h+='</div>';cont.innerHTML=h;
+  h+=`</div></div>`;
+  cont.innerHTML=h;
 }
 function renderObjC(){
   const obj=S.objective,total=obj.total||50,done=S.ipRecords.length,rem=Math.max(0,total-done),pct=Math.min(100,Math.round(done/total*100));
@@ -997,10 +1024,15 @@ function renderCalGrid(){
       const i2=iso(d),isSel=selCells.find(c=>c.date===i2&&c.slot===s);
       const blks=S.calBlocks.filter(b=>{if(b.date!==i2)return false;if(calFil.length>0&&!calFil.includes(b.taskId))return false;const be=b.startMin+b.duration;return b.startMin===sm||(b.startMin<sm&&be>sm);});
       let bk='';
-      blks.filter(b=>b.startMin===sm).forEach(b=>{
+      // Render block when its startMin falls within this slot (not just exact match)
+      blks.filter(b=>b.startMin>=sm&&b.startMin<sm+bs).forEach(b=>{
         const t=S.tasks.find(x=>x.id===b.taskId);if(!t)return;
-        const h=Math.max((b.duration/bs)*CH,CH),bg=hexRgba(t.color,.18);
-        bk+=`<div class="cal-block-abs" style="height:${h}px;background:${bg};border-left:3px solid ${t.color};color:${t.color};" onclick="openBD('${b.id}',event)">${t.name}${t.isIP?'<span class="ip-badge">✨</span>':''}${b.notes?'<br><span style="opacity:.7;font-weight:500">'+b.notes.slice(0,26)+'</span>':''}</div>`;
+        // offset within the slot in px
+        const offsetPx=((b.startMin-sm)/bs)*CH;
+        const totalSlots=(b.duration/bs);
+        const h=Math.max(totalSlots*CH - offsetPx, CH*0.5);
+        const bg=hexRgba(t.color,.18);
+        bk+=`<div class="cal-block-abs" style="top:${offsetPx}px;height:${h}px;background:${bg};border-left:3px solid ${t.color};color:${t.color};" onclick="openBD('${b.id}',event)">${t.name}${t.isIP?'<span class="ip-badge">✨</span>':''}${b.notes?'<br><span style="opacity:.7;font-weight:500">'+b.notes.slice(0,26)+'</span>':''}</div>`;
       });
       bH+=`<div class="cal-cell${isSel?' sel':''}" style="height:${CH}px;" data-date="${i2}" data-slot="${s}" onmousedown="startSel(event,this,'${i2}',${s})" onmouseover="extSel(event,this,'${i2}',${s})">${bk}<div class="plus-hint">+</div></div>`;
     });
