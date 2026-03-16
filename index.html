@@ -1012,34 +1012,53 @@ function renderCalGrid(){
   const days=cv==='week'?wk(base):[base];const todI=iso(today);
   const d0=days[0],d1=days[days.length-1];
   document.getElementById('calLabel').textContent=`${d0.getDate()} – ${d1.getDate()} ${MF[d1.getMonth()].slice(0,4)}`;
+
+  // CH = pixels per slot, PH = pixels per hour (constant reference for block positioning)
   const SM=7*60,EM=22*60,slots=Math.ceil((EM-SM)/bs);
   const CH=bs>=240?80:bs>=120?60:bs>=60?48:bs>=30?26:18;
+  const PH=(CH/bs)*60; // pixels per actual hour — stays proportional
+  const totalH=slots*CH;
   const cols=`54px repeat(${days.length},1fr)`;
+
+  // Header
   const head=document.getElementById('calHead');
   head.style.gridTemplateColumns=cols;
   let hH='<div style="border-bottom:1px solid var(--border)"></div>';
   days.forEach((d,i)=>{const i2=iso(d);const iT=i2===todI;const di=cv==='week'?i:(d.getDay()||7)-1;hH+=`<div class="cal-dh${iT?' today':''}"><span>${DF[di]}</span><span class="cal-dn">${d.getDate()}</span></div>`;});
   head.innerHTML=hH;
-  let bH='';
+
+  // Body: time gutter + day columns side by side
+  let bH=`<div style="display:flex;">`;
+  // Time gutter
+  bH+=`<div style="width:54px;flex-shrink:0;position:relative;height:${totalH}px;border-right:1px solid var(--border);">`;
   for(let s=0;s<slots;s++){
     const sm=SM+s*bs,hh=Math.floor(sm/60),mm=sm%60;
-    bH+=`<div class="cal-row" style="grid-template-columns:${cols};"><div class="cal-t" style="height:${CH}px;">${mm===0?`${String(hh).padStart(2,'0')}:00`:''}</div>`;
-    days.forEach(d=>{
-      const i2=iso(d),isSel=selCells.find(c=>c.date===i2&&c.slot===s);
-      const blks=S.calBlocks.filter(b=>{if(b.date!==i2)return false;if(calFil.length>0&&!calFil.includes(b.taskId))return false;const be=b.startMin+b.duration;return b.startMin===sm||(b.startMin<sm&&be>sm);});
-      let bk='';
-      // Render block when its startMin falls within this slot
-      blks.filter(b=>b.startMin>=sm&&b.startMin<sm+bs).forEach(b=>{
-        const t=S.tasks.find(x=>x.id===b.taskId);if(!t)return;
-        const offsetPx=((b.startMin-sm)/bs)*CH;
-        const hPx=Math.max((b.duration/bs)*CH, CH*0.5); // height = full duration, not minus offset
-        const bg=hexRgba(t.color,.18);
-        bk+=`<div class="cal-block-abs" style="top:${offsetPx}px;height:${hPx}px;background:${bg};border-left:3px solid ${t.color};color:${t.color};" onclick="openBD('${b.id}',event)">${t.name}${t.isIP?'<span class="ip-badge">✨</span>':''}${b.notes?'<br><span style="opacity:.7;font-weight:500">'+b.notes.slice(0,26)+'</span>':''}</div>`;
-      });
-      bH+=`<div class="cal-cell${isSel?' sel':''}" style="height:${CH}px;" data-date="${i2}" data-slot="${s}" onmousedown="startSel(event,this,'${i2}',${s})" onmouseover="extSel(event,this,'${i2}',${s})">${bk}<div class="plus-hint">+</div></div>`;
-    });
-    bH+='</div>';
+    if(mm===0) bH+=`<div style="position:absolute;top:${s*CH}px;right:6px;font-size:10px;color:var(--txt3);line-height:1;padding-top:2px;">${String(hh).padStart(2,'0')}:00</div>`;
   }
+  bH+=`</div>`;
+
+  // Day columns
+  days.forEach(d=>{
+    const i2=iso(d);
+    const dayBlks=S.calBlocks.filter(b=>b.date===i2&&(calFil.length===0||calFil.includes(b.taskId)));
+    bH+=`<div style="flex:1;position:relative;height:${totalH}px;border-right:1px solid rgba(212,168,240,.1);">`;
+    // Grid lines (one per slot)
+    for(let s=0;s<slots;s++){
+      bH+=`<div style="position:absolute;top:${s*CH}px;left:0;right:0;height:${CH}px;border-top:1px solid rgba(212,168,240,.1);" data-date="${i2}" data-slot="${s}" onmousedown="startSel(event,this,'${i2}',${s})" onmouseover="extSel(event,this,'${i2}',${s})" class="cal-cell${selCells.find(c=>c.date===i2&&c.slot===s)?' sel':''}"><div class="plus-hint">+</div></div>`;
+    }
+    // Blocks — positioned by real minutes, independent of current bs
+    dayBlks.forEach(b=>{
+      const t=S.tasks.find(x=>x.id===b.taskId);if(!t)return;
+      if(b.startMin>=EM||b.startMin+b.duration<=SM)return; // out of range
+      const topPx=Math.max(0,(b.startMin-SM)/60*PH);
+      const hPx=Math.max(b.duration/60*PH, 14);
+      const bg=hexRgba(t.color,.18);
+      const dur=b.duration>=60?Math.round(b.duration/60)+'h':b.duration+'m';
+      bH+=`<div class="cal-block-abs" style="top:${topPx}px;height:${hPx}px;background:${bg};border-left:3px solid ${t.color};color:${t.color};z-index:3;" onclick="openBD('${b.id}',event)">${t.name}${t.isIP?'<span class="ip-badge">✨</span>':''}${hPx>28?' <span style="opacity:.65;font-size:9px;">('+dur+')</span>':''}${b.notes?'<br><span style="opacity:.7;font-weight:500">'+b.notes.slice(0,26)+'</span>':''}</div>`;
+    });
+    bH+=`</div>`;
+  });
+  bH+=`</div>`;
   document.getElementById('calBody').innerHTML=bH;
 }
 function togFil(id){if(calFil.length===0)calFil=S.tasks.map(t=>t.id);const i=calFil.indexOf(id);if(i>=0)calFil.splice(i,1);else calFil.push(id);if(calFil.length===S.tasks.length)calFil=[];renderCal();}
